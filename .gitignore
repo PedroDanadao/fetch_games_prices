@@ -1,2 +1,9 @@
 games_to_check.json
 get_single_page_info.py
+
+# Ignore PyInstaller build folders
+build/
+dist/
+
+# Ignore JetBrains IDE config
+.idea/

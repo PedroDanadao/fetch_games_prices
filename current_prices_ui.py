@@ -1,5 +1,7 @@
 import os
-
+from pathlib import Path
+import platform
+import subprocess
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 import current_prices
@@ -103,6 +105,13 @@ class CurrentPricesUI(QtWidgets.QWidget):
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
+        # Add open json folder
+        self.open_data_folder_button = QtWidgets.QPushButton("Open Json Folder")
+        self.open_data_folder_button.clicked.connect(self.open_data_folder)
+        button_layout.addWidget(self.open_data_folder_button)
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
+
         self.prices_tree_widget = QtWidgets.QTreeWidget()
         self.prices_tree_widget.setHeaderLabels(["Game", "Steam Current", "Steam Base", "Steam Discount", "GOG Current", "GOG Base", "GOG Discount"])
         
@@ -161,6 +170,20 @@ class CurrentPricesUI(QtWidgets.QWidget):
         
         # Start the worker
         self.worker.start()
+
+
+    def open_data_folder(self):
+        folder = Path.home() / ".current_prices_data"
+        folder.mkdir(parents=True, exist_ok=True)  # Garante que existe
+
+        system = platform.system()
+
+        if system == "Darwin":  # macOS
+            subprocess.run(["open", folder])
+        elif system == "Windows":
+            os.startfile(folder)
+        else:  # Linux ou outros Unix-like
+            subprocess.run(["xdg-open", folder])
 
     def on_price_updated(self, game_name, price_info):
         """Handle when a single game's price is updated."""
