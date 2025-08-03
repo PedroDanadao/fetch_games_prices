@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 import json
-import os
+from pathlib import Path
 
 # ...
 
@@ -23,9 +23,12 @@ def exit_chrome_driver(driver):
     if driver:
         driver.quit()
 
-THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+# User data folder path
+DATA_DIR = Path.home() / ".current_prices_data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-json_path = os.path.join(THIS_FOLDER, "games_to_check.json")
+# Get the actual directory of the Python executable or script
+json_path = DATA_DIR / "games_to_check.json"
 
 try:
     with open(json_path, "r") as json_file:

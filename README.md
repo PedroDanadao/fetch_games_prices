@@ -105,6 +105,18 @@ The app will:
 
 ---
 
+### 3. Open the Folder Where Your games list are stored as Json 
+
+Open a terminal and run this command to see which folder contains the json file:
+
+```
+python3 -c "from pathlib import Path; print(Path.home() / '.current_prices_data')"
+```
+
+Or alternatively, use the **[Open Json Folder]** button available in the app's interface.
+
+---
+
 ## 🧪 Quick Test
 
 To try it out:
