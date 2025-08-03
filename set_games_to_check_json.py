@@ -1,11 +1,30 @@
 import os
+import platform
+import subprocess
+import sys
+from pathlib import Path
 import json
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
-ICON_PATH = os.path.join(THIS_FOLDER, "icons", "window_icon.png")
-JSON_PATH = os.path.join(THIS_FOLDER, "games_to_check.json")
 
+
+# User data folder path
+DATA_DIR = Path.home() / ".current_prices_data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Get the actual directory of the Python executable or script
+JSON_PATH = DATA_DIR / "games_to_check.json"
+
+
+
+# Pega o diretório real do executável ou script Python
+if getattr(sys, 'frozen', False):
+    THIS_FOLDER = os.path.dirname(sys.executable)  # se for executável
+else:
+    THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))  # se for script
+print(f"This app is running from this folder:\n{THIS_FOLDER}")
+
+ICON_PATH = os.path.join(THIS_FOLDER, "icons", "window_icon.png")
 
 class GameManagerUI(QtWidgets.QWidget):
     def __init__(self):
@@ -76,6 +95,10 @@ class GameManagerUI(QtWidgets.QWidget):
         self.remove_button.clicked.connect(self.remove_game)
         self.remove_button.setEnabled(False)
         buttons_layout.addWidget(self.remove_button)
+
+        self.open_json_button = QtWidgets.QPushButton("Open Json Folder")
+        self.open_json_button.clicked.connect(self.open_data_folder)
+        buttons_layout.addWidget(self.open_json_button)
 
         buttons_layout.addStretch()
 
@@ -200,6 +223,19 @@ class GameManagerUI(QtWidgets.QWidget):
             self.game_url_input.clear()
             
             QtWidgets.QMessageBox.information(self, "Success", f"Game '{game_name}' removed successfully.")
+
+    def open_data_folder(self):
+        folder = Path.home() / ".current_prices_data"
+        folder.mkdir(parents=True, exist_ok=True)  # Garante que existe
+
+        system = platform.system()
+
+        if system == "Darwin":  # macOS
+            subprocess.run(["open", folder])
+        elif system == "Windows":
+            os.startfile(folder)
+        else:  # Linux ou outros Unix-like
+            subprocess.run(["xdg-open", folder])
 
     def save_games(self):
         """Save all games from the tree widget to the JSON file."""
