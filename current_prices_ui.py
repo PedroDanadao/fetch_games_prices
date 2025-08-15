@@ -44,12 +44,15 @@ class PriceWorker(QtCore.QThread):
                     game_data = {
                         "steam": {
                             "current": self.convert_to_float(current_prices_dict.get("Steam_current", "0,0")),
-                            "base": self.convert_to_float(current_prices_dict.get("Steam_base", "0,0"))
+                            "base": self.convert_to_float(current_prices_dict.get("Steam_base", "0,0")),
+                            "link": current_prices_dict.get("Steam_link")
                         },
                         "gog": {
                             "current": self.convert_to_float(current_prices_dict.get("GOG_current", "0,0")),
-                            "base": self.convert_to_float(current_prices_dict.get("GOG_base", "0,0"))
-                        }
+                            "base": self.convert_to_float(current_prices_dict.get("GOG_base", "0,0")),
+                            "link": current_prices_dict.get("GOG_link")
+                        },
+                        "is_there_any_deal_link": current_prices_dict.get("is_there_any_deal_link")
                     }
                     
                     self.price_updated.emit(game_name, game_data)
@@ -143,14 +146,16 @@ class CurrentPricesUI(QtWidgets.QWidget):
                 font-weight: bold;
             }
         """)
-
         self.prices_tree_widget.setAlternatingRowColors(True)
+
+        # Context menu for copying links
+        self.prices_tree_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.prices_tree_widget.customContextMenuRequested.connect(self.open_context_menu)
 
         layout.addWidget(self.prices_tree_widget)
 
     def update_prices(self):
         """Start the price update process in a worker thread."""
-        # Prevent multiple concurrent updates
         if self.worker and self.worker.isRunning():
             return
             
@@ -158,31 +163,27 @@ class CurrentPricesUI(QtWidgets.QWidget):
         self.refresh_button.setEnabled(False)
         self.status_label.setText("Initializing...")
         
-        # Create and configure worker thread
         self.worker = PriceWorker()
         self.worker.set_games(current_prices.GAMES_TO_CHECK)
         
-        # Connect signals
         self.worker.price_updated.connect(self.on_price_updated)
         self.worker.progress_updated.connect(self.on_progress_updated)
         self.worker.finished_all.connect(self.on_finished_all)
         self.worker.error_occurred.connect(self.on_error_occurred)
         
-        # Start the worker
         self.worker.start()
-
 
     def open_data_folder(self):
         folder = Path.home() / ".current_prices_data"
-        folder.mkdir(parents=True, exist_ok=True)  # Garante que existe
+        folder.mkdir(parents=True, exist_ok=True)
 
         system = platform.system()
 
-        if system == "Darwin":  # macOS
+        if system == "Darwin":
             subprocess.run(["open", folder])
         elif system == "Windows":
             os.startfile(folder)
-        else:  # Linux ou outros Unix-like
+        else:
             subprocess.run(["xdg-open", folder])
 
     def on_price_updated(self, game_name, price_info):
@@ -205,10 +206,6 @@ class CurrentPricesUI(QtWidgets.QWidget):
         steam_current = steam_current if steam_current != "0,00    " else ""
         gog_current = gog_current if gog_current != "0,00    " else ""
 
-        # steam_discount = price_info["steam"]["base"] - price_info["steam"]["current"]
-        # gog_discount = price_info["gog"]["base"] - price_info["gog"]["current"]
-        # steam_discount = self.convert_to_str(steam_discount) if steam_discount > 0 else ""
-        # gog_discount = self.convert_to_str(gog_discount) if gog_discount > 0 else ""
         steam_discount = self.get_discount_string(price_info["steam"]["current"],
                                                    price_info["steam"]["base"])
         gog_discount = self.get_discount_string(price_info["gog"]["current"],
@@ -221,7 +218,6 @@ class CurrentPricesUI(QtWidgets.QWidget):
         item.setText(5, gog_base)
         item.setText(6, gog_discount)
 
-        # change the font color of the discount columns to green
         item.setForeground(3, QtGui.QBrush(QtGui.QColor("#30fc4b")))
         item.setForeground(6, QtGui.QBrush(QtGui.QColor("#30fc4b")))
 
@@ -230,17 +226,52 @@ class CurrentPricesUI(QtWidgets.QWidget):
         if price_info["gog"]["current"] < price_info["gog"]["base"]:
             item.setForeground(4, QtGui.QBrush(QtGui.QColor("#5186f8")))
 
-        # change the width of the first column to 300
         self.prices_tree_widget.setColumnWidth(0, 300)
 
-        # align right the text of the other columns and add a padding of 10 pixels to the right
         for i in range(1, 7):
             item.setTextAlignment(i, QtCore.Qt.AlignRight)
 
+        # Store links for context menu
+        item.setData(0, QtCore.Qt.UserRole, {
+            "steam_link": price_info["steam"].get("link"),
+            "gog_link": price_info["gog"].get("link"),
+            "itad_link": price_info.get("is_there_any_deal_link")
+        })
+
         self.prices_tree_widget.addTopLevelItem(item)
 
-        # Apply background color to all columns
-        # item.setBackground(0, QtGui.QBrush(QtGui.QColor("black")))
+    def open_context_menu(self, point):
+        item = self.prices_tree_widget.itemAt(point)
+        if not item:
+            return
+        links = item.data(0, QtCore.Qt.UserRole) or {}
+        steam_link = links.get("steam_link")
+        gog_link = links.get("gog_link")
+        itad_link = links.get("itad_link")
+
+        menu = QtWidgets.QMenu(self)
+
+        if steam_link:
+            act_steam = menu.addAction("Copy Steam link")
+            act_steam.triggered.connect(lambda: self.copy_link(steam_link))
+        if gog_link:
+            act_gog = menu.addAction("Copy GOG link")
+            act_gog.triggered.connect(lambda: self.copy_link(gog_link))
+        if itad_link:
+            act_itad = menu.addAction("Copy IsThereAnyDeal link")
+            act_itad.triggered.connect(lambda: self.copy_link(itad_link))
+
+        if not any([steam_link, gog_link, itad_link]):
+            disabled = menu.addAction("No links available")
+            disabled.setEnabled(False)
+
+        menu.exec_(self.prices_tree_widget.viewport().mapToGlobal(point))
+
+    def copy_link(self, link_text):
+        if not link_text:
+            return
+        QtWidgets.QApplication.clipboard().setText(link_text)
+        self.status_label.setText("Link copied to clipboard")
 
     def get_discount_string(self, current_price, base_price):
         """Calculate and return the discount string."""
@@ -270,7 +301,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
         """Handle window close event - ensure worker thread is properly terminated."""
         if self.worker and self.worker.isRunning():
             self.worker.terminate()
-            self.worker.wait()  # Wait for thread to finish
+            self.worker.wait()
         event.accept()
 
     def convert_to_float(self, price_str):

@@ -70,12 +70,18 @@ def get_game_prices(game_name, driver=None):
         current_price = prices[1] if prices else "No price found"
         base_price = prices[2] if prices else "No price found"
 
+        element_link = element.get_attribute("href")
+
+        prices_data_dict["is_there_any_deal_link"] = game_site
+
         if "Steam" in element_text:
             prices_data_dict["Steam_current"] = current_price
             prices_data_dict["Steam_base"] = base_price
+            prices_data_dict["Steam_link"] = element_link
         if "GOG" in element_text:
             prices_data_dict["GOG_current"] = current_price
             prices_data_dict["GOG_base"] = base_price
+            prices_data_dict["GOG_link"] = element_link
 
     return prices_data_dict
 
@@ -87,8 +93,8 @@ if __name__ == "__main__":
     # Uncomment the lines below to test with specific games or change the game names to 
     # match your JSON file
 
-    # doom_prices = get_game_prices("DOOM + DOOM II", driver)
+    doom_prices = get_game_prices("DOOM + DOOM II", driver)
 
-    # print("DOOM + DOOM II Prices:", doom_prices)
+    print("DOOM + DOOM II Prices:", doom_prices)
 
     exit_chrome_driver(driver)
