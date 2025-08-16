@@ -50,6 +50,12 @@ GAMES_TO_CHECK = {
     },
     "Resident Evil Village": {
         "xbox_site": "https://www.xbox.com/pt-br/games/store/resident-evil-village/9N2S04LGXXH4"
+    },
+    "Donkey Kong": {
+        "nintendo_site":"https://www.nintendo.com/pt-br/store/products/donkey-kong-bananza-switch-2"
+    },
+    "Spiritfarer": {
+        "nintendo_site": "https://www.nintendo.com/pt-br/store/products/spiritfarer-switch"
     }
 }
 
@@ -163,29 +169,70 @@ def get_nintendo_prices(game_name, driver=None):
     """
     Fetches the current and base price of the game that matches the name in the GAMES_TO_CHECK dict
     """
+    # # set up chrome driver
+    # if not driver:
+    #     driver = start_chrome_driver()
+
+    # game_site = GAMES_TO_CHECK.get(game_name)["nintendo_site"]
+
+    # # navigate to the website
+    # driver.get(game_site)
+
+    # # wait for the product grid to load
+    # WebDriverWait(driver, 20).until(
+    #     EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".W990N"))
+    # )
+
+    # new_price_element = driver.find_element(By.CSS_SELECTOR, ".W990N")
+    # base_price_elements = driver.find_elements(By.CSS_SELECTOR, ".o2BsP")
+
+    # base_price_element = base_price_elements[0] if base_price_elements else new_price_element
+
+    # new_price = re.findall(r'\d+,\d+', new_price_element.text)
+    # base_price = re.findall(r'\d+,\d+', base_price_element.text)
+
+    # return new_price, base_price
+
+    base_price, new_price = get_site_price(game_name, driver, site_key="nintendo_site", waiter_selector=".W990N", 
+                                           new_price_selector=".W990N",base_price_selector=".o2BsP")
+    
+    return base_price, new_price
+
+
+def get_site_price(game_name, driver=None, site_key="psn_site", waiter_selector='', new_price_selector='', 
+                   base_price_selector='', price_card_selector=''):
+    """
+    Fetches the current and base price of the game that matches the name in the GAMES_TO_CHECK dict
+    """
     # set up chrome driver
     if not driver:
         driver = start_chrome_driver()
 
-    game_site = GAMES_TO_CHECK.get(game_name)["xbox_site"]
+    game_site = GAMES_TO_CHECK.get(game_name)[site_key]
 
     # navigate to the website
     driver.get(game_site)
 
     # wait for the product grid to load
     WebDriverWait(driver, 20).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".W990N"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, waiter_selector))
     )
 
-    "sc-1i9d4nw-10"
+    parent_element = driver
 
-    new_price_element = price_card_element.find_element(By.CSS_SELECTOR, "span.psw-t-title-m")
-    base_price_elements = price_card_element.find_elements(By.CSS_SELECTOR, "span.psw-t-title-s")
+    if price_card_selector:
+        price_card_element = driver.find_element(By.CSS_SELECTOR, price_card_selector)
+        parent_element = price_card_element
+
+    new_price_element = parent_element.find_element(By.CSS_SELECTOR, new_price_selector)
+    base_price_elements = parent_element.find_elements(By.CSS_SELECTOR, base_price_selector)
 
     base_price_element = base_price_elements[0] if base_price_elements else new_price_element
 
     new_price = re.findall(r'\d+,\d+', new_price_element.text)
     base_price = re.findall(r'\d+,\d+', base_price_element.text)
+
+    return new_price, base_price
 
 
 if __name__ == "__main__":
@@ -195,11 +242,14 @@ if __name__ == "__main__":
     # Uncomment the lines below to test with specific games or change the game names to 
     # match your JSON file
 
-    # clair_obscur_prices = get_psn_prices("Jedi Survivor")
-    # clair_obscur_prices = get_psn_prices("Expedition 33")
+    # get_psn_prices("Jedi Survivor")
+    # get_psn_prices("Expedition 33")
 
-    # clair_obscur_prices = get_xbox_prices("Expedition 33")
-    # clair_obscur_prices = get_xbox_prices("Jedi Survivor")
-    # clair_obscur_prices = get_xbox_prices("Resident Evil Village")
+    # get_xbox_prices("Expedition 33")
+    # get_xbox_prices("Jedi Survivor")
+    # get_xbox_prices("Resident Evil Village")
+
+    # get_nintendo_prices("Donkey Kong")
+    get_nintendo_prices("Spiritfarer")
 
     exit_chrome_driver(driver)
