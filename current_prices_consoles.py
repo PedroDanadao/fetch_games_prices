@@ -59,52 +59,6 @@ GAMES_TO_CHECK = {
     }
 }
 
-def get_game_prices(game_name, driver=None):
-    """Check the prices of a game on Steam and GOG."""
-    # set up chrome driver
-    if not driver:
-        driver = start_chrome_driver()
-    
-    prices_data_dict = {}
-
-    game_site = GAMES_TO_CHECK.get(game_name)
-
-    # navigate to the target webpage
-    driver.get(game_site)
-
-    # wait for the product grid to load
-    WebDriverWait(driver, 60).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".svelte-1l4u06e"))
-    )
-
-    elements = driver.find_elements(By.CSS_SELECTOR, ".row")
-
-    for element in elements:
-        element_text = element.text
-
-        if not (element_text.startswith("Steam\n") or element_text.startswith("GOG\n")):
-            continue
-
-        prices = re.findall(r'\d+,\d+', element_text)
-
-        current_price = prices[1] if prices else "No price found"
-        base_price = prices[2] if prices else "No price found"
-
-        element_link = element.get_attribute("href")
-
-        prices_data_dict["is_there_any_deal_link"] = game_site
-
-        if "Steam" in element_text:
-            prices_data_dict["Steam_current"] = current_price
-            prices_data_dict["Steam_base"] = base_price
-            prices_data_dict["Steam_link"] = element_link
-        if "GOG" in element_text:
-            prices_data_dict["GOG_current"] = current_price
-            prices_data_dict["GOG_base"] = base_price
-            prices_data_dict["GOG_link"] = element_link
-
-    return prices_data_dict
-
 
 def get_psn_prices(game_name, driver=None):
     """
@@ -121,11 +75,17 @@ def get_psn_prices(game_name, driver=None):
 
     # wait for the product grid to load
     WebDriverWait(driver, 20).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".psw-c-bg-card-1"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.psw-fill-x"))
     )
 
     price_card_element = driver.find_element(By.CSS_SELECTOR, ".psw-c-bg-card-1")
-    new_price_element = price_card_element.find_element(By.CSS_SELECTOR, "span.psw-t-title-m")
+    new_price_elements = price_card_element.find_elements(By.CSS_SELECTOR, "span.psw-t-title-m")
+    
+    for element in new_price_elements:
+        new_price_element = element
+        if re.findall(r'\d+,\d+', element.text):
+            break
+
     base_price_elements = price_card_element.find_elements(By.CSS_SELECTOR, "span.psw-t-title-s")
 
     base_price_element = base_price_elements[0] if base_price_elements else new_price_element
@@ -133,70 +93,29 @@ def get_psn_prices(game_name, driver=None):
     new_price = re.findall(r'\d+,\d+', new_price_element.text)
     base_price = re.findall(r'\d+,\d+', base_price_element.text)
 
-    return new_price, base_price
+    return base_price, new_price
 
 
 def get_xbox_prices(game_name, driver=None):
     """
     Fetches the current and base price of the game that matches the name in the GAMES_TO_CHECK dict
     """
-    # set up chrome driver
-    if not driver:
-        driver = start_chrome_driver()
-
-    game_site = GAMES_TO_CHECK.get(game_name)["xbox_site"]
-
-    # navigate to the website
-    driver.get(game_site)
-
-    # wait for the product grid to load
-    WebDriverWait(driver, 20).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".Price-module__boldText___1i2Li"))
-    )
-
-    new_price_element = driver.find_element(By.CSS_SELECTOR, ".Price-module__boldText___1i2Li")
-    base_price_elements = driver.find_elements(By.CSS_SELECTOR, ".Price-module__brandOriginalPrice___ayJAn")
-
-    base_price_element = base_price_elements[0] if base_price_elements else new_price_element
-
-    new_price = re.findall(r'\d+,\d+', new_price_element.text)
-    base_price = re.findall(r'\d+,\d+', base_price_element.text)
-
-    return new_price, base_price
+    new_price, base_price = get_site_price(game_name, driver, site_key="xbox_site",
+                                           waiter_selector=".CommonButtonStyles-module__variableLineDesktopButton___cxDyV",
+                                           new_price_selector=".Price-module__boldText___1i2Li",
+                                           base_price_selector=".Price-module__brandOriginalPrice___ayJAn")
+    
+    return base_price[0], new_price[0]
 
 
 def get_nintendo_prices(game_name, driver=None):
     """
     Fetches the current and base price of the game that matches the name in the GAMES_TO_CHECK dict
     """
-    # # set up chrome driver
-    # if not driver:
-    #     driver = start_chrome_driver()
-
-    # game_site = GAMES_TO_CHECK.get(game_name)["nintendo_site"]
-
-    # # navigate to the website
-    # driver.get(game_site)
-
-    # # wait for the product grid to load
-    # WebDriverWait(driver, 20).until(
-    #     EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".W990N"))
-    # )
-
-    # new_price_element = driver.find_element(By.CSS_SELECTOR, ".W990N")
-    # base_price_elements = driver.find_elements(By.CSS_SELECTOR, ".o2BsP")
-
-    # base_price_element = base_price_elements[0] if base_price_elements else new_price_element
-
-    # new_price = re.findall(r'\d+,\d+', new_price_element.text)
-    # base_price = re.findall(r'\d+,\d+', base_price_element.text)
-
-    # return new_price, base_price
-
     base_price, new_price = get_site_price(game_name, driver, site_key="nintendo_site", waiter_selector=".W990N", 
                                            new_price_selector=".W990N",base_price_selector=".o2BsP")
     
-    return base_price, new_price
+    return base_price[0], new_price[0]
 
 
 def get_site_price(game_name, driver=None, site_key="psn_site", waiter_selector='', new_price_selector='', 
@@ -243,13 +162,13 @@ if __name__ == "__main__":
     # match your JSON file
 
     # get_psn_prices("Jedi Survivor")
-    # get_psn_prices("Expedition 33")
+    get_psn_prices("Expedition 33")
 
     # get_xbox_prices("Expedition 33")
     # get_xbox_prices("Jedi Survivor")
     # get_xbox_prices("Resident Evil Village")
 
     # get_nintendo_prices("Donkey Kong")
-    get_nintendo_prices("Spiritfarer")
+    # get_nintendo_prices("Spiritfarer")
 
     exit_chrome_driver(driver)
