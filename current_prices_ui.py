@@ -258,7 +258,8 @@ class CurrentPricesUI(QtWidgets.QWidget):
             act_gog = menu.addAction("Copy GOG link")
             act_gog.triggered.connect(lambda: self.copy_link(gog_link))
 
-        menu.addSeparator()
+        if any([steam_link, gog_link]):
+            menu.addSeparator()
         
         if itad_link:
             act_itad = menu.addAction("Copy IsThereAnyDeal link")
