@@ -10,7 +10,7 @@ THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 ICON_PATH = os.path.join(THIS_FOLDER, "icons", "window_icon.png")
 
 # Global variable for price padding
-PRICE_PADDING = "   "  # Three spaces
+PRICE_PADDING = " " * 3
 
 class ConsolePriceWorker(QtCore.QThread):
     """Worker thread for fetching console game prices without blocking the UI."""
@@ -114,8 +114,9 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
         layout.addLayout(button_layout)
         self.prices_tree_widget = QtWidgets.QTreeWidget()
         self.prices_tree_widget.setHeaderLabels([
-            "Game", "PSN Current", "PSN Base", "PSN Discount",
-            "Xbox Current", "Xbox Base", "Xbox Discount",
+            "Game", "|",
+            "PSN Current", "PSN Base", "PSN Discount", "|",
+            "Xbox Current", "Xbox Base", "Xbox Discount", "|",
             "Nintendo Current", "Nintendo Base", "Nintendo Discount"
         ])
         # Dark theme styling (copied from current_prices_ui.py)
@@ -149,7 +150,12 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
         self.prices_tree_widget.setAlternatingRowColors(True)
         self.prices_tree_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.prices_tree_widget.customContextMenuRequested.connect(self.open_context_menu)
+        
         layout.addWidget(self.prices_tree_widget)
+        # Set column widths for separators to 2px (after widget is added)
+        self.prices_tree_widget.setColumnWidth(1, 2)   # Separator after Game
+        self.prices_tree_widget.setColumnWidth(5, 2)   # Separator after PSN
+        self.prices_tree_widget.setColumnWidth(9, 2)   # Separator after Xbox
 
     def update_prices(self):
         if self.worker and self.worker.isRunning():
@@ -177,50 +183,40 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
             subprocess.run(["xdg-open", folder])
 
     def on_price_updated(self, game_name, price_info):
-        item = QtWidgets.QTreeWidgetItem([game_name])
-        # PSN
-        psn_current_val = price_info.get("psn", {}).get("current", 0.0)
-        psn_base_val = price_info.get("psn", {}).get("base", 0.0)
-        psn_current = self.convert_to_str(psn_current_val)
-        psn_base = self.convert_to_str(psn_base_val)
-        psn_discount = self.get_discount_string(psn_current_val, psn_base_val)
-        item.setText(1, psn_current)
-        item.setText(2, psn_base)
-        item.setText(3, psn_discount)
-        # Xbox
-        xbox_current_val = price_info.get("xbox", {}).get("current", 0.0)
-        xbox_base_val = price_info.get("xbox", {}).get("base", 0.0)
-        xbox_current = self.convert_to_str(xbox_current_val)
-        xbox_base = self.convert_to_str(xbox_base_val)
-        xbox_discount = self.get_discount_string(xbox_current_val, xbox_base_val)
-        item.setText(4, xbox_current)
-        item.setText(5, xbox_base)
-        item.setText(6, xbox_discount)
-        # Nintendo
-        nintendo_current_val = price_info.get("nintendo", {}).get("current", 0.0)
-        nintendo_base_val = price_info.get("nintendo", {}).get("base", 0.0)
-        nintendo_current = self.convert_to_str(nintendo_current_val)
-        nintendo_base = self.convert_to_str(nintendo_base_val)
-        nintendo_discount = self.get_discount_string(nintendo_current_val, nintendo_base_val)
-        item.setText(7, nintendo_current)
-        item.setText(8, nintendo_base)
-        item.setText(9, nintendo_discount)
+        item = QtWidgets.QTreeWidgetItem([
+            game_name, "|",
+            self.convert_to_str(price_info.get("psn", {}).get("current", 0.0)),
+            self.convert_to_str(price_info.get("psn", {}).get("base", 0.0)),
+            self.get_discount_string(price_info.get("psn", {}).get("current", 0.0), price_info.get("psn", {}).get("base", 0.0)), "|",
+            self.convert_to_str(price_info.get("xbox", {}).get("current", 0.0)),
+            self.convert_to_str(price_info.get("xbox", {}).get("base", 0.0)),
+            self.get_discount_string(price_info.get("xbox", {}).get("current", 0.0), price_info.get("xbox", {}).get("base", 0.0)), "|",
+            self.convert_to_str(price_info.get("nintendo", {}).get("current", 0.0)),
+            self.convert_to_str(price_info.get("nintendo", {}).get("base", 0.0)),
+            self.get_discount_string(price_info.get("nintendo", {}).get("current", 0.0), price_info.get("nintendo", {}).get("base", 0.0))
+        ])
 
         # Set colors: blue for current price if discount, green for discount columns
         blue = QtGui.QBrush(QtGui.QColor("#5186f8"))
         green = QtGui.QBrush(QtGui.QColor("#30fc4b"))
         # PSN
+        psn_current_val = price_info.get("psn", {}).get("current", 0.0)
+        psn_base_val = price_info.get("psn", {}).get("base", 0.0)
         if psn_current_val < psn_base_val:
-            item.setForeground(1, blue)
-        item.setForeground(3, green)
+            item.setForeground(2, blue)
+        item.setForeground(4, green)
         # Xbox
+        xbox_current_val = price_info.get("xbox", {}).get("current", 0.0)
+        xbox_base_val = price_info.get("xbox", {}).get("base", 0.0)
         if xbox_current_val < xbox_base_val:
-            item.setForeground(4, blue)
-        item.setForeground(6, green)
+            item.setForeground(6, blue)
+        item.setForeground(8, green)
         # Nintendo
+        nintendo_current_val = price_info.get("nintendo", {}).get("current", 0.0)
+        nintendo_base_val = price_info.get("nintendo", {}).get("base", 0.0)
         if nintendo_current_val < nintendo_base_val:
-            item.setForeground(7, blue)
-        item.setForeground(9, green)
+            item.setForeground(10, blue)
+        item.setForeground(12, green)
 
         # Store links for context menu
         item.setData(0, QtCore.Qt.UserRole, {
@@ -294,5 +290,5 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     window = CurrentConsolePricesUI()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec_())
