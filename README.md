@@ -29,20 +29,47 @@ It is a PyQt5 desktop app to track the current prices of games on Steam and GOG,
 
 ## ⚙️ Installation
 
-### 1. Clone this repository or copy the files
+### 1. Install Python 3.11
+
+`Tip: Do not try to run the following comments from iDEs Terminal`
+
+#### On **Windows**:
+Download and install the Python3.11 setup from the Oficial website.
+
+#### On **macOS**:
+```bash
+brew install python@3.11
+echo 'export PATH="/usr/local/opt/python@3.11/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+python3.11 --version
+pip3.11 install pyinstaller
+```
+---
+
+### 2. Clone this repository or copy the files
 
 ```bash
 git clone <repo-url>
 cd fetch_games_prices
 ```
 
-### 2. Install dependencies
+---
 
+### 3. Install dependencies
+
+
+#### On **Windows**:
 ```bash
 pip install PyQt5 selenium
 ```
 
-### 3. Install ChromeDriver
+#### On **macOS**:
+```bash
+pip3.11 install PyQt5 selenium
+```
+---
+
+### 4. Install ChromeDriver
 
 Check your Chrome version via:
 ```
@@ -138,6 +165,7 @@ To try it out:
 ```bash
 pip install pyinstaller
 ```
+(Or the `pip3.11` command on Mac)
 
 ---
 
@@ -148,6 +176,7 @@ pip install pyinstaller
 ```bash
 python3 -m pyinstaller --onefile --windowed current_prices_ui.py
 ```
+(Or the `python3.11` command on Mac)
 
 > Output For Mac: `dist/current_prices_ui.app`
 > Output For Windows: `dist\current_prices_ui.exe`

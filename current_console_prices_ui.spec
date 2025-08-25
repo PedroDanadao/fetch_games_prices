@@ -36,3 +36,9 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
+app = BUNDLE(
+    exe,
+    name='current_console_prices_ui.app',
+    icon=None,
+    bundle_identifier=None,
+)

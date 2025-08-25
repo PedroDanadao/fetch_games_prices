@@ -36,3 +36,9 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
+app = BUNDLE(
+    exe,
+    name='set_games_to_check_json.app',
+    icon=None,
+    bundle_identifier=None,
+)
