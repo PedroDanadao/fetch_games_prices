@@ -19,6 +19,9 @@ else:
 ICON_PATH = os.path.join(THIS_FOLDER, "icons", "window_icon.png")
 
 
+X_STRING = 8 * " " + "X"
+
+
 class ConsoleGameManagerUI(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -138,9 +141,9 @@ class ConsoleGameManagerUI(QtWidgets.QWidget):
                     nintendo = sites.get("nintendo_site", "")
                     item = QtWidgets.QTreeWidgetItem([
                         game_name,
-                        "          X" if psn else "",
-                        "          X" if xbox else "",
-                        "          X" if nintendo else ""
+                        X_STRING if psn else "",
+                        X_STRING if xbox else "",
+                        X_STRING if nintendo else ""
                     ])
                     item.setData(0, QtCore.Qt.UserRole, sites)
                     self.games_tree.addTopLevelItem(item)
@@ -173,9 +176,9 @@ class ConsoleGameManagerUI(QtWidgets.QWidget):
         # Add item to tree
         item = QtWidgets.QTreeWidgetItem([
             game_name,
-            "     X" if psn else "",
-            "     X" if xbox else "",
-            "     X" if nintendo else ""
+            X_STRING if psn else "",
+            X_STRING if xbox else "",
+            X_STRING if nintendo else ""
         ])
         item.setData(0, QtCore.Qt.UserRole, sites)
         self.games_tree.addTopLevelItem(item)
@@ -215,9 +218,9 @@ class ConsoleGameManagerUI(QtWidgets.QWidget):
             sites["nintendo_site"] = nintendo
         # Update item in tree
         current_item.setText(0, game_name)
-        current_item.setText(1, "     X" if psn else "")
-        current_item.setText(2, "     X" if xbox else "")
-        current_item.setText(3, "     X" if nintendo else "")
+        current_item.setText(1, X_STRING if psn else "")
+        current_item.setText(2, X_STRING if xbox else "")
+        current_item.setText(3, X_STRING if nintendo else "")
         current_item.setData(0, QtCore.Qt.UserRole, sites)
         # Clear inputs
         self.game_name_input.clear()

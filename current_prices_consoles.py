@@ -39,25 +39,26 @@ except FileNotFoundError:
     print(f"Error: The file {json_path} does not exist. Set the games to check using the ui")
     GAMES_TO_CHECK = {}
 
-GAMES_TO_CHECK = {
-    "Expedition 33": {
-        "psn_site": "https://store.playstation.com/pt-br/product/EP7579-PPSA17599_00-EXP33000000PS5EU",
-        "xbox_site": "https://www.xbox.com/pt-br/games/store/clair-obscur-expedition-33/9ppt8k6gqhrz"
-    },
-    "Jedi Survivor": {
-        "psn_site": "https://store.playstation.com/pt-br/product/UP0006-PPSA07783_00-APPLEJACKGAME000",
-        "xbox_site": "https://www.xbox.com/pt-br/games/store/star-wars-jedi-survivor/9pgc82v0dxfs"
-    },
-    "Resident Evil Village": {
-        "xbox_site": "https://www.xbox.com/pt-br/games/store/resident-evil-village/9N2S04LGXXH4"
-    },
-    "Donkey Kong": {
-        "nintendo_site":"https://www.nintendo.com/pt-br/store/products/donkey-kong-bananza-switch-2"
-    },
-    "Spiritfarer": {
-        "nintendo_site": "https://www.nintendo.com/pt-br/store/products/spiritfarer-switch"
-    }
-}
+# DEBUG
+# GAMES_TO_CHECK = {
+#     "Expedition 33": {
+#         "psn_site": "https://store.playstation.com/pt-br/product/EP7579-PPSA17599_00-EXP33000000PS5EU",
+#         "xbox_site": "https://www.xbox.com/pt-br/games/store/clair-obscur-expedition-33/9ppt8k6gqhrz"
+#     },
+#     "Jedi Survivor": {
+#         "psn_site": "https://store.playstation.com/pt-br/product/UP0006-PPSA07783_00-APPLEJACKGAME000",
+#         "xbox_site": "https://www.xbox.com/pt-br/games/store/star-wars-jedi-survivor/9pgc82v0dxfs"
+#     },
+#     "Resident Evil Village": {
+#         "xbox_site": "https://www.xbox.com/pt-br/games/store/resident-evil-village/9N2S04LGXXH4"
+#     },
+#     "Donkey Kong": {
+#         "nintendo_site":"https://www.nintendo.com/pt-br/store/products/donkey-kong-bananza-switch-2"
+#     },
+#     "Spiritfarer": {
+#         "nintendo_site": "https://www.nintendo.com/pt-br/store/products/spiritfarer-switch"
+#     }
+# }
 
 
 def get_psn_prices(game_name, driver=None):
