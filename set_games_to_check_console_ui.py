@@ -22,6 +22,27 @@ ICON_PATH = os.path.join(THIS_FOLDER, "icons", "window_icon.png")
 X_STRING = 8 * " " + "X"
 
 
+class CustomTreeWidget(QtWidgets.QTreeWidget):
+    """Custom tree widget that prevents nesting during drag and drop."""
+    
+    def dropEvent(self, event):
+        # Only allow drops at the root level
+        item = self.itemAt(event.pos())
+        if item is None:
+            # Dropping in empty space - allow
+            super().dropEvent(event)
+        else:
+            # Get the drop indicator position
+            drop_indicator = self.dropIndicatorPosition()
+            if drop_indicator == QtWidgets.QAbstractItemView.OnItem:
+                # Trying to drop on an item (would create nesting) - don't allow
+                event.ignore()
+                return
+            else:
+                # Dropping above or below an item - allow
+                super().dropEvent(event)
+
+
 class ConsoleGameManagerUI(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -47,10 +68,15 @@ class ConsoleGameManagerUI(QtWidgets.QWidget):
 
     def setup_tree_widget(self):
         """Set up the tree widget for displaying games."""
-        self.games_tree = QtWidgets.QTreeWidget()
+        self.games_tree = CustomTreeWidget()
         self.games_tree.setHeaderLabels(["Game Name", "PSN", "Xbox", "Nintendo"])
         self.games_tree.setAlternatingRowColors(True)
         self.games_tree.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        
+        # Enable drag and drop for reordering but prevent nesting
+        self.games_tree.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.games_tree.setRootIsDecorated(False)  # Remove expand/collapse indicators
+        
         self.main_layout.addWidget(self.games_tree)
         self.games_tree.setColumnWidth(0, 300)
         self.games_tree.setColumnWidth(1, 100)
