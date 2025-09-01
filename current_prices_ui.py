@@ -82,6 +82,9 @@ class CurrentPricesUI(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.worker = None
+        self.showing_only_discounted = False
+        self.games_data = {}  # Store game data: {game_name: {steam_data, gog_data, links}}
+        self.games_order = []  # Store original order of game names
         self.init_ui()
         self.update_prices()
 
@@ -105,14 +108,30 @@ class CurrentPricesUI(QtWidgets.QWidget):
         self.refresh_button = QtWidgets.QPushButton("Refresh Prices")
         self.refresh_button.clicked.connect(self.update_prices)
         button_layout.addWidget(self.refresh_button)
+        
+        self.show_discounted_button = QtWidgets.QPushButton("Show Only Discounted")
+        self.show_discounted_button.setEnabled(False)
+        self.show_discounted_button.clicked.connect(self.toggle_discount_filter)
+        button_layout.addWidget(self.show_discounted_button)
+        
+        # Add sort combo box
+        sort_label = QtWidgets.QLabel("Sort by:")
+        button_layout.addWidget(sort_label)
+        
+        self.sort_combo = QtWidgets.QComboBox()
+        self.sort_combo.addItems(["Saved Order", "Current Price Ascending", "Discount Value (Highest to Lowest)"])
+        self.sort_combo.setEnabled(False)
+        self.sort_combo.currentTextChanged.connect(self.sort_games)
+        button_layout.addWidget(self.sort_combo)
+        
         button_layout.addStretch()
-        layout.addLayout(button_layout)
 
         # Add open json folder
         self.open_data_folder_button = QtWidgets.QPushButton("Open Json Folder")
         self.open_data_folder_button.clicked.connect(self.open_data_folder)
         button_layout.addWidget(self.open_data_folder_button)
         button_layout.addStretch()
+        layout.addLayout(button_layout)
         layout.addLayout(button_layout)
 
         self.prices_tree_widget = QtWidgets.QTreeWidget()
@@ -161,6 +180,10 @@ class CurrentPricesUI(QtWidgets.QWidget):
             
         self.prices_tree_widget.clear()
         self.refresh_button.setEnabled(False)
+        self.show_discounted_button.setEnabled(False)
+        self.sort_combo.setEnabled(False)
+        self.games_data.clear()
+        self.games_order.clear()
         self.status_label.setText("Initializing...")
         
         self.worker = PriceWorker()
@@ -188,6 +211,15 @@ class CurrentPricesUI(QtWidgets.QWidget):
 
     def on_price_updated(self, game_name, price_info):
         """Handle when a single game's price is updated."""
+        # Store game data in dictionary
+        self.games_data[game_name] = price_info
+        self.games_order.append(game_name)
+        
+        # Create and add item to tree
+        self.create_and_add_item(game_name, price_info)
+
+    def create_and_add_item(self, game_name, price_info):
+        """Create a tree widget item from game data and add it to the tree."""
         item = QtWidgets.QTreeWidgetItem([game_name])
 
         number_of_items = len(self.prices_tree_widget.children())
@@ -293,7 +325,107 @@ class CurrentPricesUI(QtWidgets.QWidget):
     def on_finished_all(self):
         """Handle when all prices have been fetched."""
         self.refresh_button.setEnabled(True)
+        self.show_discounted_button.setEnabled(True)
+        self.sort_combo.setEnabled(True)
+        self.sort_combo.setCurrentIndex(0)  # Reset to "Saved Order"
         self.status_label.setText("All prices updated successfully!")
+
+    def show_only_discounted(self):
+        """Show only games with discounts applied."""
+        for i in range(self.prices_tree_widget.topLevelItemCount()):
+            item = self.prices_tree_widget.topLevelItem(i)
+            steam_current = self._parse_price(item.text(1))
+            steam_base = self._parse_price(item.text(2))
+            gog_current = self._parse_price(item.text(4))
+            gog_base = self._parse_price(item.text(5))
+            has_discount = (steam_base > 0 and steam_current < steam_base) or (gog_base > 0 and gog_current < gog_base)
+            item.setHidden(not has_discount)
+
+    def show_all_games(self):
+        """Show all games (both discounted and undiscounted)."""
+        for i in range(self.prices_tree_widget.topLevelItemCount()):
+            item = self.prices_tree_widget.topLevelItem(i)
+            item.setHidden(False)
+
+    def toggle_discount_filter(self):
+        """Toggle between showing only discounted games and showing all games."""
+        if self.showing_only_discounted:
+            self.show_all_games()
+            self.show_discounted_button.setText("Show Only Discounted")
+            self.showing_only_discounted = False
+        else:
+            self.show_only_discounted()
+            self.show_discounted_button.setText("Show Undiscounted")
+            self.showing_only_discounted = True
+
+    def sort_games(self, sort_type):
+        """Sort games based on the selected sort type."""
+        if sort_type == "Saved Order":
+            self.sort_by_saved_order()
+        elif sort_type == "Current Price Ascending":
+            self.sort_by_current_price()
+        elif sort_type == "Discount Value (Highest to Lowest)":
+            self.sort_by_discount_value()
+
+    def sort_by_saved_order(self):
+        """Restore original order of items."""
+        self.prices_tree_widget.clear()
+        for game_name in self.games_order:
+            if game_name in self.games_data:
+                self.create_and_add_item(game_name, self.games_data[game_name])
+
+    def sort_by_current_price(self):
+        """Sort by current price (lowest price between Steam and GOG)."""
+        # Create list of (min_price, game_name) tuples
+        price_items = []
+        for game_name, price_info in self.games_data.items():
+            steam_current = price_info["steam"]["current"]
+            gog_current = price_info["gog"]["current"]
+            # Get the lowest current price (excluding 0)
+            prices = [p for p in [steam_current, gog_current] if p > 0]
+            min_price = min(prices) if prices else float('inf')
+            price_items.append((min_price, game_name))
+        
+        # Sort by price (ascending)
+        price_items.sort(key=lambda x: x[0])
+        
+        # Clear and rebuild tree
+        self.prices_tree_widget.clear()
+        for _, game_name in price_items:
+            self.create_and_add_item(game_name, self.games_data[game_name])
+
+    def sort_by_discount_value(self):
+        """Sort by discount value (highest discount first)."""
+        # Create list of (max_discount, game_name) tuples
+        discount_items = []
+        for game_name, price_info in self.games_data.items():
+            steam_current = price_info["steam"]["current"]
+            steam_base = price_info["steam"]["base"]
+            gog_current = price_info["gog"]["current"]
+            gog_base = price_info["gog"]["base"]
+            
+            # Calculate discount values
+            steam_discount = steam_base - steam_current if steam_base > steam_current > 0 else 0
+            gog_discount = gog_base - gog_current if gog_base > gog_current > 0 else 0
+            max_discount = max(steam_discount, gog_discount)
+            
+            discount_items.append((max_discount, game_name))
+        
+        # Sort by discount value (descending - highest first)
+        discount_items.sort(key=lambda x: x[0], reverse=True)
+        
+        # Clear and rebuild tree
+        self.prices_tree_widget.clear()
+        for _, game_name in discount_items:
+            self.create_and_add_item(game_name, self.games_data[game_name])
+
+    def _parse_price(self, price_str):
+        """Parse price string to float, handling spaces and commas."""
+        price_str = price_str.strip().replace(' ', '').replace(',', '.')
+        try:
+            return float(price_str)
+        except Exception:
+            return 0.0
 
     def on_error_occurred(self, error_message):
         """Handle errors from the worker thread."""
