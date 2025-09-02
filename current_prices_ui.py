@@ -330,8 +330,8 @@ class CurrentPricesUI(QtWidgets.QWidget):
         self.sort_combo.setCurrentIndex(0)  # Reset to "Saved Order"
         self.status_label.setText("All prices updated successfully!")
 
-    def show_only_discounted(self):
-        """Show only games with discounts applied."""
+    def apply_discount_filter(self):
+        """Apply the discount filter to currently visible items."""
         for i in range(self.prices_tree_widget.topLevelItemCount()):
             item = self.prices_tree_widget.topLevelItem(i)
             steam_current = self._parse_price(item.text(1))
@@ -340,6 +340,10 @@ class CurrentPricesUI(QtWidgets.QWidget):
             gog_base = self._parse_price(item.text(5))
             has_discount = (steam_base > 0 and steam_current < steam_base) or (gog_base > 0 and gog_current < gog_base)
             item.setHidden(not has_discount)
+
+    def show_only_discounted(self):
+        """Show only games with discounts applied."""
+        self.apply_discount_filter()
 
     def show_all_games(self):
         """Show all games (both discounted and undiscounted)."""
@@ -373,6 +377,10 @@ class CurrentPricesUI(QtWidgets.QWidget):
         for game_name in self.games_order:
             if game_name in self.games_data:
                 self.create_and_add_item(game_name, self.games_data[game_name])
+        
+        # Apply discount filter if active
+        if self.showing_only_discounted:
+            self.apply_discount_filter()
 
     def sort_by_current_price(self):
         """Sort by current price (lowest price between Steam and GOG)."""
@@ -393,6 +401,10 @@ class CurrentPricesUI(QtWidgets.QWidget):
         self.prices_tree_widget.clear()
         for _, game_name in price_items:
             self.create_and_add_item(game_name, self.games_data[game_name])
+        
+        # Apply discount filter if active
+        if self.showing_only_discounted:
+            self.apply_discount_filter()
 
     def sort_by_discount_value(self):
         """Sort by discount percentage (highest percentage first)."""
@@ -429,6 +441,10 @@ class CurrentPricesUI(QtWidgets.QWidget):
         self.prices_tree_widget.clear()
         for _, game_name in discount_items:
             self.create_and_add_item(game_name, self.games_data[game_name])
+        
+        # Apply discount filter if active
+        if self.showing_only_discounted:
+            self.apply_discount_filter()
 
     def _parse_price(self, price_str):
         """Parse price string to float, handling spaces and commas."""
