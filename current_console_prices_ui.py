@@ -89,6 +89,9 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.worker = None
+        self.showing_only_discounted = False
+        self.games_data = {}  # Store game data: {game_name: {psn_data, xbox_data, nintendo_data, links}}
+        self.games_order = []  # Store original order of game names
         self.init_ui()
         self.update_prices()
 
@@ -106,6 +109,22 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
         self.refresh_button = QtWidgets.QPushButton("Refresh Prices")
         self.refresh_button.clicked.connect(self.update_prices)
         button_layout.addWidget(self.refresh_button)
+        
+        self.show_discounted_button = QtWidgets.QPushButton("Show Only Discounted")
+        self.show_discounted_button.setEnabled(False)
+        self.show_discounted_button.clicked.connect(self.toggle_discount_filter)
+        button_layout.addWidget(self.show_discounted_button)
+        
+        # Add sort combo box
+        sort_label = QtWidgets.QLabel("Sort by:")
+        button_layout.addWidget(sort_label)
+        
+        self.sort_combo = QtWidgets.QComboBox()
+        self.sort_combo.addItems(["Saved Order", "Current Price Ascending", "Discount Percentage (Highest to Lowest)"])
+        self.sort_combo.setEnabled(False)
+        self.sort_combo.currentTextChanged.connect(self.sort_games)
+        button_layout.addWidget(self.sort_combo)
+        
         button_layout.addStretch()
         self.open_data_folder_button = QtWidgets.QPushButton("Open Json Folder")
         self.open_data_folder_button.clicked.connect(self.open_data_folder)
@@ -162,6 +181,10 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
             return
         self.prices_tree_widget.clear()
         self.refresh_button.setEnabled(False)
+        self.show_discounted_button.setEnabled(False)
+        self.sort_combo.setEnabled(False)
+        self.games_data.clear()
+        self.games_order.clear()
         self.status_label.setText("Initializing...")
         self.worker = ConsolePriceWorker()
         self.worker.set_games(current_prices_consoles.GAMES_TO_CHECK)
@@ -183,6 +206,15 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
             subprocess.run(["xdg-open", folder])
 
     def on_price_updated(self, game_name, price_info):
+        # Store game data in dictionary
+        self.games_data[game_name] = price_info
+        self.games_order.append(game_name)
+        
+        # Create and add item to tree
+        self.create_and_add_item(game_name, price_info)
+
+    def create_and_add_item(self, game_name, price_info):
+        """Create a tree widget item from game data and add it to the tree."""
         item = QtWidgets.QTreeWidgetItem([
             game_name, "|",
             self.convert_to_str(price_info.get("psn", {}).get("current", 0.0)),
@@ -267,6 +299,9 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
 
     def on_finished_all(self):
         self.refresh_button.setEnabled(True)
+        self.show_discounted_button.setEnabled(True)
+        self.sort_combo.setEnabled(True)
+        self.sort_combo.setCurrentIndex(0)  # Reset to "Saved Order"
         self.status_label.setText("All prices updated successfully!")
 
     def on_error_occurred(self, error_message):
@@ -279,6 +314,141 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
             self.worker.terminate()
             self.worker.wait()
         event.accept()
+
+    def apply_discount_filter(self):
+        """Apply the discount filter to currently visible items."""
+        for i in range(self.prices_tree_widget.topLevelItemCount()):
+            item = self.prices_tree_widget.topLevelItem(i)
+            psn_current = self._parse_price(item.text(2))
+            psn_base = self._parse_price(item.text(3))
+            xbox_current = self._parse_price(item.text(6))
+            xbox_base = self._parse_price(item.text(7))
+            nintendo_current = self._parse_price(item.text(10))
+            nintendo_base = self._parse_price(item.text(11))
+            has_discount = ((psn_base > 0 and psn_current < psn_base) or 
+                           (xbox_base > 0 and xbox_current < xbox_base) or 
+                           (nintendo_base > 0 and nintendo_current < nintendo_base))
+            item.setHidden(not has_discount)
+
+    def show_only_discounted(self):
+        """Show only games with discounts applied."""
+        self.apply_discount_filter()
+
+    def show_all_games(self):
+        """Show all games (both discounted and undiscounted)."""
+        for i in range(self.prices_tree_widget.topLevelItemCount()):
+            item = self.prices_tree_widget.topLevelItem(i)
+            item.setHidden(False)
+
+    def toggle_discount_filter(self):
+        """Toggle between showing only discounted games and showing all games."""
+        if self.showing_only_discounted:
+            self.show_all_games()
+            self.show_discounted_button.setText("Show Only Discounted")
+            self.showing_only_discounted = False
+        else:
+            self.show_only_discounted()
+            self.show_discounted_button.setText("Show Undiscounted")
+            self.showing_only_discounted = True
+
+    def sort_games(self, sort_type):
+        """Sort games based on the selected sort type."""
+        if sort_type == "Saved Order":
+            self.sort_by_saved_order()
+        elif sort_type == "Current Price Ascending":
+            self.sort_by_current_price()
+        elif sort_type == "Discount Percentage (Highest to Lowest)":
+            self.sort_by_discount_value()
+
+    def sort_by_saved_order(self):
+        """Restore original order of items."""
+        self.prices_tree_widget.clear()
+        for game_name in self.games_order:
+            if game_name in self.games_data:
+                self.create_and_add_item(game_name, self.games_data[game_name])
+        
+        # Apply discount filter if active
+        if self.showing_only_discounted:
+            self.apply_discount_filter()
+
+    def sort_by_current_price(self):
+        """Sort by current price (lowest price between PSN, Xbox, and Nintendo)."""
+        # Create list of (min_price, game_name) tuples
+        price_items = []
+        for game_name, price_info in self.games_data.items():
+            psn_current = price_info.get("psn", {}).get("current", 0.0)
+            xbox_current = price_info.get("xbox", {}).get("current", 0.0)
+            nintendo_current = price_info.get("nintendo", {}).get("current", 0.0)
+            # Get the lowest current price (excluding 0)
+            prices = [p for p in [psn_current, xbox_current, nintendo_current] if p > 0]
+            min_price = min(prices) if prices else float('inf')
+            price_items.append((min_price, game_name))
+        
+        # Sort by price (ascending)
+        price_items.sort(key=lambda x: x[0])
+        
+        # Clear and rebuild tree
+        self.prices_tree_widget.clear()
+        for _, game_name in price_items:
+            self.create_and_add_item(game_name, self.games_data[game_name])
+        
+        # Apply discount filter if active
+        if self.showing_only_discounted:
+            self.apply_discount_filter()
+
+    def sort_by_discount_value(self):
+        """Sort by discount percentage (highest percentage first)."""
+        # Create list of (max_discount_percentage, game_name) tuples
+        discount_items = []
+        for game_name, price_info in self.games_data.items():
+            psn_current = price_info.get("psn", {}).get("current", 0.0)
+            psn_base = price_info.get("psn", {}).get("base", 0.0)
+            xbox_current = price_info.get("xbox", {}).get("current", 0.0)
+            xbox_base = price_info.get("xbox", {}).get("base", 0.0)
+            nintendo_current = price_info.get("nintendo", {}).get("current", 0.0)
+            nintendo_base = price_info.get("nintendo", {}).get("base", 0.0)
+            
+            # Calculate discount percentages - only if there's actually a discount
+            psn_discount_percentage = 0
+            if psn_base > 0 and psn_current > 0 and psn_current < psn_base:
+                psn_discount_percentage = ((psn_base - psn_current) / psn_base) * 100
+            
+            xbox_discount_percentage = 0
+            if xbox_base > 0 and xbox_current > 0 and xbox_current < xbox_base:
+                xbox_discount_percentage = ((xbox_base - xbox_current) / xbox_base) * 100
+            
+            nintendo_discount_percentage = 0
+            if nintendo_base > 0 and nintendo_current > 0 and nintendo_current < nintendo_base:
+                nintendo_discount_percentage = ((nintendo_base - nintendo_current) / nintendo_base) * 100
+            
+            # Get the highest discount percentage between PSN, Xbox, and Nintendo
+            max_discount_percentage = max(psn_discount_percentage, xbox_discount_percentage, nintendo_discount_percentage)
+            
+            # If no discount, put at the end
+            if max_discount_percentage == 0:
+                max_discount_percentage = -1  # This will sort to the end
+            
+            discount_items.append((max_discount_percentage, game_name))
+        
+        # Sort by discount percentage (descending - highest first)
+        discount_items.sort(key=lambda x: x[0], reverse=True)
+        
+        # Clear and rebuild tree
+        self.prices_tree_widget.clear()
+        for _, game_name in discount_items:
+            self.create_and_add_item(game_name, self.games_data[game_name])
+        
+        # Apply discount filter if active
+        if self.showing_only_discounted:
+            self.apply_discount_filter()
+
+    def _parse_price(self, price_str):
+        """Parse price string to float, handling spaces and commas."""
+        price_str = price_str.strip().replace(' ', '').replace(',', '.')
+        try:
+            return float(price_str)
+        except Exception:
+            return 0.0
 
     def convert_to_str(self, price_float):
         if price_float:
