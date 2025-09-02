@@ -57,7 +57,7 @@ class MainUI(QtWidgets.QWidget):
         self.pc_prices_button.clicked.connect(self.open_pc_prices)
         main_layout.addWidget(self.pc_prices_button)
 
-        self.pc_config_button = QtWidgets.QPushButton("Configure PC Games")
+        self.pc_config_button = QtWidgets.QPushButton("Set PC Games")
         self.pc_config_button.setStyleSheet(self.get_button_style())
         self.pc_config_button.clicked.connect(self.open_pc_config)
         main_layout.addWidget(self.pc_config_button)
@@ -81,7 +81,7 @@ class MainUI(QtWidgets.QWidget):
         self.console_prices_button.clicked.connect(self.open_console_prices)
         main_layout.addWidget(self.console_prices_button)
 
-        self.console_config_button = QtWidgets.QPushButton("Configure Console Games")
+        self.console_config_button = QtWidgets.QPushButton("Set Console Games")
         self.console_config_button.setStyleSheet(self.get_button_style())
         self.console_config_button.clicked.connect(self.open_console_config)
         main_layout.addWidget(self.console_config_button)
