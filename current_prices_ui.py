@@ -119,7 +119,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
         button_layout.addWidget(sort_label)
         
         self.sort_combo = QtWidgets.QComboBox()
-        self.sort_combo.addItems(["Saved Order", "Current Price Ascending", "Discount Value (Highest to Lowest)"])
+        self.sort_combo.addItems(["Saved Order", "Current Price Ascending", "Discount Percentage (Highest to Lowest)"])
         self.sort_combo.setEnabled(False)
         self.sort_combo.currentTextChanged.connect(self.sort_games)
         button_layout.addWidget(self.sort_combo)
@@ -364,7 +364,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
             self.sort_by_saved_order()
         elif sort_type == "Current Price Ascending":
             self.sort_by_current_price()
-        elif sort_type == "Discount Value (Highest to Lowest)":
+        elif sort_type == "Discount Percentage (Highest to Lowest)":
             self.sort_by_discount_value()
 
     def sort_by_saved_order(self):
@@ -395,8 +395,8 @@ class CurrentPricesUI(QtWidgets.QWidget):
             self.create_and_add_item(game_name, self.games_data[game_name])
 
     def sort_by_discount_value(self):
-        """Sort by discount value (highest discount first)."""
-        # Create list of (max_discount, game_name) tuples
+        """Sort by discount percentage (highest percentage first)."""
+        # Create list of (max_discount_percentage, game_name) tuples
         discount_items = []
         for game_name, price_info in self.games_data.items():
             steam_current = price_info["steam"]["current"]
@@ -404,14 +404,25 @@ class CurrentPricesUI(QtWidgets.QWidget):
             gog_current = price_info["gog"]["current"]
             gog_base = price_info["gog"]["base"]
             
-            # Calculate discount values
-            steam_discount = steam_base - steam_current if steam_base > steam_current > 0 else 0
-            gog_discount = gog_base - gog_current if gog_base > gog_current > 0 else 0
-            max_discount = max(steam_discount, gog_discount)
+            # Calculate discount percentages - only if there's actually a discount
+            steam_discount_percentage = 0
+            if steam_base > 0 and steam_current > 0 and steam_current < steam_base:
+                steam_discount_percentage = ((steam_base - steam_current) / steam_base) * 100
             
-            discount_items.append((max_discount, game_name))
+            gog_discount_percentage = 0
+            if gog_base > 0 and gog_current > 0 and gog_current < gog_base:
+                gog_discount_percentage = ((gog_base - gog_current) / gog_base) * 100
+            
+            # Get the highest discount percentage between Steam and GOG
+            max_discount_percentage = max(steam_discount_percentage, gog_discount_percentage)
+            
+            # If no discount, put at the end
+            if max_discount_percentage == 0:
+                max_discount_percentage = -1  # This will sort to the end
+            
+            discount_items.append((max_discount_percentage, game_name))
         
-        # Sort by discount value (descending - highest first)
+        # Sort by discount percentage (descending - highest first)
         discount_items.sort(key=lambda x: x[0], reverse=True)
         
         # Clear and rebuild tree
