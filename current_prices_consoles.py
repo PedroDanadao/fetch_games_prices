@@ -61,6 +61,20 @@ except FileNotFoundError:
 # }
 
 
+def update_games_to_check():
+    """Update the games to check JSON file with a new dictionary."""
+    global GAMES_TO_CHECK
+    
+    try:
+        with open(json_path, "r") as json_file:
+            GAMES_TO_CHECK = json.load(json_file)
+    except FileNotFoundError:
+        print(f"Error: The file {json_path} does not exist. Set the games to check using the ui")
+        GAMES_TO_CHECK = {}
+
+    return GAMES_TO_CHECK
+
+
 def get_psn_prices(game_name, driver=None):
     """
     Fetches the current and base price of the game that matches the name in the GAMES_TO_CHECK dict

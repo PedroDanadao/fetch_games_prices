@@ -187,7 +187,7 @@ class CurrentConsolePricesUI(QtWidgets.QWidget):
         self.games_order.clear()
         self.status_label.setText("Initializing...")
         self.worker = ConsolePriceWorker()
-        self.worker.set_games(current_prices_consoles.GAMES_TO_CHECK)
+        self.worker.set_games(current_prices_consoles.update_games_to_check())
         self.worker.price_updated.connect(self.on_price_updated)
         self.worker.progress_updated.connect(self.on_progress_updated)
         self.worker.finished_all.connect(self.on_finished_all)
