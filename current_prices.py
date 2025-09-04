@@ -37,6 +37,18 @@ except FileNotFoundError:
     print(f"Error: The file {json_path} does not exist. Set the games to check using the ui")
     GAMES_TO_CHECK = {}
 
+def update_games_to_check():
+    """Update the games to check from the JSON file."""
+    global GAMES_TO_CHECK
+    try:
+        with open(json_path, "r") as json_file:
+            GAMES_TO_CHECK = json.load(json_file)
+    except FileNotFoundError:
+        print(f"Error: The file {json_path} does not exist. Set the games to check using the ui")
+        GAMES_TO_CHECK = {}
+
+    return GAMES_TO_CHECK
+
 def get_game_prices(game_name, driver=None):
     """Check the prices of a game on Steam and GOG."""
     # set up chrome driver

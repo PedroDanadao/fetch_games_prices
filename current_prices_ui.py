@@ -187,7 +187,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
         self.status_label.setText("Initializing...")
         
         self.worker = PriceWorker()
-        self.worker.set_games(current_prices.GAMES_TO_CHECK)
+        self.worker.set_games(current_prices.update_games_to_check())
         
         self.worker.price_updated.connect(self.on_price_updated)
         self.worker.progress_updated.connect(self.on_progress_updated)

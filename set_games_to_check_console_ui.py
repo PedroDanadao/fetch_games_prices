@@ -338,6 +338,21 @@ class ConsoleGameManagerUI(QtWidgets.QWidget):
         else:
             event.ignore()
 
+    def _original_close_event(self, event):
+        """Placeholder for storing original closeEvent if needed."""
+        reply = QtWidgets.QMessageBox.question(
+            self, "Exit", 
+            "Do you want to save changes before closing?",
+            QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel
+        )
+        if reply == QtWidgets.QMessageBox.Save:
+            self.save_games()
+            event.accept()
+        elif reply == QtWidgets.QMessageBox.Discard:
+            event.accept()
+        else:
+            event.ignore()
+
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)

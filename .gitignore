@@ -7,3 +7,7 @@ dist/
 
 # Ignore JetBrains IDE config
 .idea/
+
+# ignore .pyc and .spec files
+*.pyc
+*.spec
