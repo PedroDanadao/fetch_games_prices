@@ -64,7 +64,7 @@ def get_game_prices(game_name, driver=None):
 
     # wait for the product grid to load
     WebDriverWait(driver, 60).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".svelte-1l4u06e"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".cell--shop"))
     )
 
     elements = driver.find_elements(By.CSS_SELECTOR, ".row")
