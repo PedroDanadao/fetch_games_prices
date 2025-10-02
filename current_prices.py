@@ -64,7 +64,7 @@ def get_game_prices(game_name, driver=None):
 
     # wait for the product grid to load
     WebDriverWait(driver, 60).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".cell--shop"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".cell"))
     )
 
     elements = driver.find_elements(By.CSS_SELECTOR, ".row")
@@ -105,8 +105,10 @@ if __name__ == "__main__":
     # Uncomment the lines below to test with specific games or change the game names to 
     # match your JSON file
 
-    doom_prices = get_game_prices("DOOM + DOOM II", driver)
+    boltgun_prices = get_game_prices("Boltgun", driver)
+    space_marine_prices = get_game_prices("Space Marine", driver)
 
-    print("DOOM + DOOM II Prices:", doom_prices)
+    print("Boltgun Prices:", boltgun_prices)
+    print("Space Marine Prices:", space_marine_prices)
 
     exit_chrome_driver(driver)
