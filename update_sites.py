@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 # set up chrome driver
 service = Service()
 options = webdriver.ChromeOptions()
-options.add_argument("--headless=new")
+# options.add_argument("--headless=new")
 driver = webdriver.Chrome(service=service, options=options)
 
 import re
@@ -18,7 +18,9 @@ import re
 games_to_check = {
     "Outlaws": "https://isthereanydeal.com/game/outlaws-and-handful-of-missions-remaster/info",
     "Kingdom Hearts": "https://isthereanydeal.com/game/kingdom-hearts-hd-1-5-and-2-5-remix/info",
-    "Beyond Good and Evil": "https://isthereanydeal.com/game/beyond-good-and-evil/info"
+    "Beyond Good and Evil": "https://isthereanydeal.com/game/beyond-good-and-evil/info",
+    "Ion Fury": "https://isthereanydeal.com/game/ion-fury/info/",
+    "Evil West": "https://isthereanydeal.com/game/evil-west/info"
 }
 
 def get_store_links(game_name):
@@ -69,8 +71,49 @@ def get_store_link(store_link, css_selector, price_label, price_fetch_function):
 
 
 def get_steam_link(store_link):
-    get_store_link(store_link, ".btn_green_steamui", "Steam", 
-                   get_steam_current_and_base_prices)
+    store_driver = webdriver.Chrome(service=service, options=options)
+    store_driver.get(store_link)
+    
+    # Check if we hit an age verification page
+    if "agecheck" in store_driver.current_url:
+        try:
+            # Wait for age gate elements to load
+            WebDriverWait(store_driver, 10).until(
+                EC.presence_of_element_located((By.ID, "ageYear"))
+            )
+            
+            # Select year 1990 from dropdown
+            year_select = store_driver.find_element(By.ID, "ageYear")
+            year_select.click()
+            year_option = store_driver.find_element(By.CSS_SELECTOR, "option[value='1990']")
+            year_option.click()
+            
+            # Click the "View Page" button
+            view_page_button = store_driver.find_element(By.ID, "view_product_page_btn")
+            view_page_button.click()
+            
+            # Wait a bit for the page to load
+            import time
+            time.sleep(2)
+        except Exception as e:
+            print(f"Age verification handling error: {str(e)}")
+            store_driver.quit()
+            return
+    
+    # wait for the product grid to load
+    WebDriverWait(store_driver, 10).until(
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".apphub_AppName"))
+    )
+
+    print("Steam Page URL:")
+    print(store_driver.current_url)
+
+    current_price, base_price = get_steam_current_and_base_prices(store_driver)
+
+    print("Steam current price for game:", current_price if current_price else "No price found")
+    print("Steam base price for game:", base_price if base_price else "No price found")
+
+    store_driver.quit()
     
 
 def get_steam_current_and_base_prices(store_driver):
@@ -118,8 +161,11 @@ def get_gog_current_and_base_prices(store_driver):
     return current_price_value, base_price_value
 
 
-get_store_links("Beyond Good and Evil")
-get_store_links("Kingdom Hearts")
+# get_store_links("Beyond Good and Evil")
+# get_store_links("Kingdom Hearts")
+# get_store_links("Ion Fury")
+# get_store_links("Evil West")
+get_steam_link("https://store.steampowered.com/agecheck/app/1065310/")
 
 # close the browser
 driver.quit()
