@@ -102,7 +102,7 @@ def get_steam_link(store_link):
     
     # wait for the product grid to load
     WebDriverWait(store_driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".apphub_AppName"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".breadcrumbs"))
     )
 
     print("Steam Page URL:")
@@ -116,15 +116,68 @@ def get_steam_link(store_link):
     store_driver.quit()
     
 
+def check_steam_comming_soon(store_driver):
+    """
+    Checks if the Steam store page indicates a "Coming Soon" status.
+    """
+    try:
+        coming_soon_element = store_driver.find_element(By.CSS_SELECTOR, ".game_area_comingsoon")
+        if coming_soon_element:
+            return True
+    except:
+        return False
+    return False
+
+
+def get_valid_purchase_action_bg(store_driver):
+    """
+    Returns the first valid purchase action background element that contains price information.
+    """
+    purchase_area_elements = store_driver.find_elements(By.CSS_SELECTOR, ".game_purchase_action_bg")
+    
+    for element in purchase_area_elements:
+        try:
+            # Check if the element contains price information
+            element.find_element(By.CSS_SELECTOR, ".discount_final_price")
+            return element
+        except:
+            try:
+                element.find_element(By.CSS_SELECTOR, ".game_purchase_price")
+                return element
+            except:
+                continue
+    return None
+
+
+def get_steam_original_price(purchase_area_element):
+    """
+    Returns the original price from a Steam store page. In some cases it only has the final price 
+    element and it throws an error, this function handles that.
+    """
+    try:
+        base_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".discount_original_price")
+    except:
+        base_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".discount_final_price")
+
+    return base_price_element
+
+
 def get_steam_current_and_base_prices(store_driver):
     """
     Returns the current and base prices from a Steam store page.
     """
+    if check_steam_comming_soon(store_driver):
+        return "0.0", "0.0"
+
+    purchase_area_element = get_valid_purchase_action_bg(store_driver)
+    if not purchase_area_element:
+        return "0.0", "0.0"
+
     try:
-        current_price_element = store_driver.find_element(By.CSS_SELECTOR, ".discount_final_price")
-        base_price_element = store_driver.find_element(By.CSS_SELECTOR, ".discount_original_price")
+        current_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".discount_final_price")
+        base_price_element = get_steam_original_price(purchase_area_element)
     except:
-        current_price_element = store_driver.find_element(By.CSS_SELECTOR, ".game_purchase_price")
+        current_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".game_purchase_price")
         base_price_element = current_price_element
 
     current_price = current_price_element.text
@@ -165,7 +218,7 @@ def get_gog_current_and_base_prices(store_driver):
 # get_store_links("Kingdom Hearts")
 # get_store_links("Ion Fury")
 # get_store_links("Evil West")
-get_steam_link("https://store.steampowered.com/agecheck/app/1065310/")
+get_steam_link("https://store.steampowered.com/app/2747550/Bloodshed/")
 
 # close the browser
 driver.quit()

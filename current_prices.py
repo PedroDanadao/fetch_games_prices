@@ -11,11 +11,18 @@ from pathlib import Path
 
 # ...
 
+
+DEBUG = True
+
+
 def start_chrome_driver():
     """Initialize and return a Chrome WebDriver instance."""
     service = Service()
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless=new")
+
+    if not DEBUG:
+        options.add_argument("--headless=new")
+    
     return webdriver.Chrome(service=service, options=options)
 
 def exit_chrome_driver(driver):
@@ -48,6 +55,53 @@ def update_games_to_check():
         GAMES_TO_CHECK = {}
 
     return GAMES_TO_CHECK
+
+
+def check_steam_comming_soon(store_driver):
+    """
+    Checks if the Steam store page indicates a "Coming Soon" status.
+    """
+    try:
+        coming_soon_element = store_driver.find_element(By.CSS_SELECTOR, ".game_area_comingsoon")
+        if coming_soon_element:
+            return True
+    except:
+        return False
+    return False
+
+
+def get_valid_purchase_action_bg(store_driver):
+    """
+    Returns the first valid purchase action background element that contains price information.
+    """
+    purchase_area_elements = store_driver.find_elements(By.CSS_SELECTOR, ".game_purchase_action_bg")
+    
+    for element in purchase_area_elements:
+        try:
+            # Check if the element contains price information
+            element.find_element(By.CSS_SELECTOR, ".discount_final_price")
+            return element
+        except:
+            try:
+                element.find_element(By.CSS_SELECTOR, ".game_purchase_price")
+                return element
+            except:
+                continue
+    return None
+
+
+def get_steam_original_price(purchase_area_element):
+    """
+    Returns the original price from a Steam store page. In some cases it only has the final price 
+    element and it throws an error, this function handles that.
+    """
+    try:
+        base_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".discount_original_price")
+    except:
+        base_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".discount_final_price")
+
+    return base_price_element
+
 
 def get_steam_prices_direct(driver, steam_link):
     """Get Steam prices directly from Steam store page."""
@@ -90,15 +144,25 @@ def get_steam_prices_direct(driver, steam_link):
                 print(f"Age verification handling error: {str(e)}")
                 return "0,0", "0,0"
         
+        # wait for the steam game page to load(.breadcrumbs element loaded)
         WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".apphub_AppName"))
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".breadcrumbs"))
         )
+
+        # this is here in case a game is marked as coming soon(does not have prices)
+        if check_steam_comming_soon(driver):
+            return "0,0", "0,0"
+
+        # we get the prices from the first purchase area of the page to avoid DLCs or bundles
+        purchase_area_element = get_valid_purchase_action_bg(driver)
+        if not purchase_area_element:
+            return "0,0", "0,0"
         
         try:
-            current_price_element = driver.find_element(By.CSS_SELECTOR, ".discount_final_price")
-            base_price_element = driver.find_element(By.CSS_SELECTOR, ".discount_original_price")
+            current_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".discount_final_price")
+            base_price_element = get_steam_original_price(purchase_area_element)
         except:
-            current_price_element = driver.find_element(By.CSS_SELECTOR, ".game_purchase_price")
+            current_price_element = purchase_area_element.find_element(By.CSS_SELECTOR, ".game_purchase_price")
             base_price_element = current_price_element
         
         current_price = current_price_element.text
