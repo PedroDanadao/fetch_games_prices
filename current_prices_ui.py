@@ -135,7 +135,8 @@ class CurrentPricesUI(QtWidgets.QWidget):
         layout.addLayout(button_layout)
 
         self.prices_tree_widget = QtWidgets.QTreeWidget()
-        self.prices_tree_widget.setHeaderLabels(["Game", "Steam Current", "Steam Base", "Steam Discount", "GOG Current", "GOG Base", "GOG Discount"])
+        # Add an extra empty column at the end so GOG discount doesn't float all the way right
+        self.prices_tree_widget.setHeaderLabels(["Game", "Steam Current", "Steam Base", "Steam Discount", "GOG Current", "GOG Base", "GOG Discount", ""]) 
         
         # Set dark theme for tree widget
         self.prices_tree_widget.setStyleSheet("""
@@ -228,20 +229,27 @@ class CurrentPricesUI(QtWidgets.QWidget):
         else:
             bg_color = QtGui.QColor("#ffffff")
 
-        steam_base = self.convert_to_str(price_info["steam"]["base"])
-        gog_base = self.convert_to_str(price_info["gog"]["base"])
-        steam_base = steam_base if steam_base != "0,00    " else ""
-        gog_base = gog_base if gog_base != "0,00    " else ""
-
+        # Convert numeric values to localized strings
         steam_current = self.convert_to_str(price_info["steam"]["current"])
         gog_current = self.convert_to_str(price_info["gog"]["current"])
         steam_current = steam_current if steam_current != "0,00    " else ""
         gog_current = gog_current if gog_current != "0,00    " else ""
 
+        # Calculate discount strings (non-empty only when a discount exists)
         steam_discount = self.get_discount_string(price_info["steam"]["current"],
-                                                   price_info["steam"]["base"])
+                                                  price_info["steam"]["base"])
         gog_discount = self.get_discount_string(price_info["gog"]["current"],
-                                                   price_info["gog"]["base"])
+                                                 price_info["gog"]["base"])
+
+        # Show base price only when there's an actual discount (match GOG behavior)
+        steam_base = ""
+        gog_base = ""
+        if steam_discount:
+            steam_base = self.convert_to_str(price_info["steam"]["base"]) or ""
+            steam_base = steam_base if steam_base != "0,00    " else ""
+        if gog_discount:
+            gog_base = self.convert_to_str(price_info["gog"]["base"]) or ""
+            gog_base = gog_base if gog_base != "0,00    " else ""
 
         item.setText(1, steam_current)
         item.setText(2, steam_base)
@@ -260,7 +268,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
 
         self.prices_tree_widget.setColumnWidth(0, 300)
 
-        for i in range(1, 7):
+        for i in range(1, 8):
             item.setTextAlignment(i, QtCore.Qt.AlignRight)
 
         # Store links for context menu
@@ -270,6 +278,8 @@ class CurrentPricesUI(QtWidgets.QWidget):
             "itad_link": price_info.get("is_there_any_deal_link")
         })
 
+        # Add an empty trailing column cell to keep layout consistent
+        item.setText(7, "")
         self.prices_tree_widget.addTopLevelItem(item)
 
     def open_context_menu(self, point: QtCore.QPoint):

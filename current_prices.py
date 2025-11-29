@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import json
 from pathlib import Path
+from typing import Optional
 
 # ...
 
@@ -70,7 +71,7 @@ def check_steam_comming_soon(store_driver: webdriver.Chrome) -> bool:
     return False
 
 
-def get_valid_purchase_action_bg(store_driver: webdriver.Chrome) -> webdriver.remote.webelement.WebElement:
+def get_valid_purchase_action_bg(store_driver: webdriver.Chrome) -> Optional[webdriver.remote.webelement.WebElement]:
     """
     Returns the first valid purchase action background element that contains price information.
     """
