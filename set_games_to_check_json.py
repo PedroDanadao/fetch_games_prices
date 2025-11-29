@@ -164,7 +164,7 @@ class StoreLinkWorker(QtCore.QThread):
         except Exception as e:
             self.error_occurred.emit(f"Critical error: {str(e)}")
 
-    def get_steam_link(self, driver, itad_link):
+    def get_steam_link(self, driver: webdriver.Chrome, itad_link: str) -> str:
         """Navigate to Steam through IsThereAnyDeal and get the actual store link."""
         try:
             driver.get(itad_link)
@@ -189,7 +189,7 @@ class StoreLinkWorker(QtCore.QThread):
             print(f"Steam link error: {str(e)}")
             return None
 
-    def get_gog_link(self, driver, itad_link):
+    def get_gog_link(self, driver: webdriver.Chrome, itad_link: str) -> str:
         """Navigate to GOG through IsThereAnyDeal and get the actual store link."""
         try:
             driver.get(itad_link)
@@ -204,7 +204,7 @@ class StoreLinkWorker(QtCore.QThread):
 class CustomTreeWidget(QtWidgets.QTreeWidget):
     """Custom tree widget that prevents nesting during drag and drop."""
     
-    def dropEvent(self, event):
+    def dropEvent(self, event: QtGui.QDropEvent):
         # Only allow drops at the root level
         item = self.itemAt(event.pos())
         if item is None:
@@ -533,7 +533,7 @@ class GameManagerUI(QtWidgets.QWidget):
                 self.steam_link_input.clear()
                 self.gog_link_input.clear()
 
-    def on_item_double_clicked(self, item, column):
+    def on_item_double_clicked(self, item: QtWidgets.QTreeWidgetItem, column: int):
         """Handle double-click on tree items."""
         self.game_name_input.setText(item.text(0))
         self.game_url_input.setText(item.text(1))
@@ -580,11 +580,11 @@ class GameManagerUI(QtWidgets.QWidget):
         self.worker.error_occurred.connect(self.on_link_error)
         self.worker.start()
 
-    def on_link_progress(self, message):
+    def on_link_progress(self, message: str):
         """Handle progress updates."""
         print(message)
 
-    def on_link_updated(self, game_name, links_dict):
+    def on_link_updated(self, game_name: str, links_dict: dict):
         """Handle when store links are updated for a game."""
         print(f"[DEBUG] on_link_updated called for: {game_name}")
         # Find the item in the tree
@@ -638,11 +638,11 @@ class GameManagerUI(QtWidgets.QWidget):
         
         QtWidgets.QMessageBox.information(self, "Success", "Store links updated and saved!")
 
-    def on_link_error(self, error_message):
+    def on_link_error(self, error_message: str):
         """Handle errors."""
         print(f"Error: {error_message}")
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent):
         """Handle window close event."""
         # Stop worker if running
         if self.worker and self.worker.isRunning():
@@ -663,7 +663,7 @@ class GameManagerUI(QtWidgets.QWidget):
         else:
             event.ignore()
 
-    def _original_close_event(self, event):
+    def _original_close_event(self, event: QtGui.QCloseEvent):
         """Placeholder for storing original closeEvent if needed."""
         """Handle window close event."""
         reply = QtWidgets.QMessageBox.question(

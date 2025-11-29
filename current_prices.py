@@ -12,7 +12,7 @@ from pathlib import Path
 # ...
 
 
-DEBUG = True
+DEBUG = False
 
 
 def start_chrome_driver():
@@ -25,7 +25,7 @@ def start_chrome_driver():
     
     return webdriver.Chrome(service=service, options=options)
 
-def exit_chrome_driver(driver):
+def exit_chrome_driver(driver: webdriver.Chrome):
     """Close the Chrome WebDriver instance."""
     if driver:
         driver.quit()
@@ -57,7 +57,7 @@ def update_games_to_check():
     return GAMES_TO_CHECK
 
 
-def check_steam_comming_soon(store_driver):
+def check_steam_comming_soon(store_driver: webdriver.Chrome) -> bool:
     """
     Checks if the Steam store page indicates a "Coming Soon" status.
     """
@@ -70,7 +70,7 @@ def check_steam_comming_soon(store_driver):
     return False
 
 
-def get_valid_purchase_action_bg(store_driver):
+def get_valid_purchase_action_bg(store_driver: webdriver.Chrome) -> webdriver.remote.webelement.WebElement:
     """
     Returns the first valid purchase action background element that contains price information.
     """
@@ -90,7 +90,7 @@ def get_valid_purchase_action_bg(store_driver):
     return None
 
 
-def get_steam_original_price(purchase_area_element):
+def get_steam_original_price(purchase_area_element: webdriver.remote.webelement.WebElement) -> webdriver.remote.webelement.WebElement:
     """
     Returns the original price from a Steam store page. In some cases it only has the final price 
     element and it throws an error, this function handles that.
@@ -103,7 +103,7 @@ def get_steam_original_price(purchase_area_element):
     return base_price_element
 
 
-def get_steam_prices_direct(driver, steam_link):
+def get_steam_prices_direct(driver: webdriver.Chrome, steam_link: str) -> tuple[str, str]:
     """Get Steam prices directly from Steam store page."""
     import re
     import time
@@ -180,7 +180,7 @@ def get_steam_prices_direct(driver, steam_link):
         return "0,0", "0,0"
 
 
-def get_gog_prices_direct(driver, gog_link):
+def get_gog_prices_direct(driver: webdriver.Chrome, gog_link: str) -> tuple[str, str]:
     """Get GOG prices directly from GOG store page."""
     try:
         driver.get(gog_link)
@@ -208,7 +208,7 @@ def get_gog_prices_direct(driver, gog_link):
         return "0,0", "0,0"
 
 
-def get_game_prices(game_name, driver=None):
+def get_game_prices(game_name: str, driver: webdriver.Chrome = None) -> dict:
     """Check the prices of a game on Steam and GOG."""
     # set up chrome driver
     if not driver:

@@ -23,7 +23,7 @@ class PriceWorker(QtCore.QThread):
         super().__init__()
         self.games_to_check = {}
         
-    def set_games(self, games_dict):
+    def set_games(self, games_dict: dict):
         """Set the games dictionary to check."""
         self.games_to_check = games_dict
         
@@ -69,7 +69,7 @@ class PriceWorker(QtCore.QThread):
         except Exception as e:
             self.error_occurred.emit(f"Critical error: {str(e)}")
     
-    def convert_to_float(self, price_str):
+    def convert_to_float(self, price_str: str) -> float:
         """Convert price string to float."""
         try:
             float_value = float(price_str.replace(',', '.')) if price_str else 0.0
@@ -209,7 +209,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
         else:
             subprocess.run(["xdg-open", folder])
 
-    def on_price_updated(self, game_name, price_info):
+    def on_price_updated(self, game_name: str, price_info: dict):
         """Handle when a single game's price is updated."""
         # Store game data in dictionary
         self.games_data[game_name] = price_info
@@ -218,7 +218,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
         # Create and add item to tree
         self.create_and_add_item(game_name, price_info)
 
-    def create_and_add_item(self, game_name, price_info):
+    def create_and_add_item(self, game_name: str, price_info: dict):
         """Create a tree widget item from game data and add it to the tree."""
         item = QtWidgets.QTreeWidgetItem([game_name])
 
@@ -272,7 +272,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
 
         self.prices_tree_widget.addTopLevelItem(item)
 
-    def open_context_menu(self, point):
+    def open_context_menu(self, point: QtCore.QPoint):
         item = self.prices_tree_widget.itemAt(point)
         if not item:
             return
@@ -303,7 +303,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
 
         menu.exec_(self.prices_tree_widget.viewport().mapToGlobal(point))
 
-    def copy_link(self, link_text):
+    def copy_link(self, link_text: str):
         if not link_text:
             return
         QtWidgets.QApplication.clipboard().setText(link_text)
@@ -318,7 +318,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
         
         return ""
 
-    def on_progress_updated(self, message):
+    def on_progress_updated(self, message: str):
         """Handle progress updates from the worker thread."""
         self.status_label.setText(message)
 
@@ -362,7 +362,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
             self.show_discounted_button.setText("Show Undiscounted")
             self.showing_only_discounted = True
 
-    def sort_games(self, sort_type):
+    def sort_games(self, sort_type: str):
         """Sort games based on the selected sort type."""
         if sort_type == "Saved Order":
             self.sort_by_saved_order()
@@ -446,7 +446,7 @@ class CurrentPricesUI(QtWidgets.QWidget):
         if self.showing_only_discounted:
             self.apply_discount_filter()
 
-    def _parse_price(self, price_str):
+    def _parse_price(self, price_str: str) -> float:
         """Parse price string to float, handling spaces and commas."""
         price_str = price_str.strip().replace(' ', '').replace(',', '.')
         try:
@@ -454,24 +454,24 @@ class CurrentPricesUI(QtWidgets.QWidget):
         except Exception:
             return 0.0
 
-    def on_error_occurred(self, error_message):
+    def on_error_occurred(self, error_message: str):
         """Handle errors from the worker thread."""
         self.status_label.setText(f"Error: {error_message}")
         self.refresh_button.setEnabled(True)
         QtWidgets.QMessageBox.warning(self, "Error", error_message)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent):
         """Handle window close event - ensure worker thread is properly terminated."""
         if self.worker and self.worker.isRunning():
             self.worker.terminate()
             self.worker.wait()
         event.accept()
 
-    def convert_to_float(self, price_str):
+    def convert_to_float(self, price_str: str) -> float:
         """Convert price string to float."""
         return float(price_str.replace(',', '.')) if price_str else 0.0
     
-    def convert_to_str(self, price_float):
+    def convert_to_str(self, price_float: float) -> str:
         """Convert float to price string with comma as decimal separator."""
         if price_float:
             formatted = f"{price_float:.2f}".replace('.', ',')
