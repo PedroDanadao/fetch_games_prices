@@ -40,6 +40,9 @@ class PriceWorker(QtCore.QThread):
                 
                 try:
                     current_prices_dict = current_prices.get_game_prices(game_name, driver)
+                    if game_name == "Evil West":
+                        import pprint
+                        print(pprint.pprint(current_prices_dict))
                     
                     game_data = {
                         "steam": {

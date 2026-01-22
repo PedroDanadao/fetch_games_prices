@@ -1,4 +1,5 @@
 # import necessary tools from the selenium library
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -183,11 +184,28 @@ def get_steam_prices_direct(driver: webdriver.Chrome, steam_link: str) -> tuple[
 
 def get_gog_prices_direct(driver: webdriver.Chrome, gog_link: str) -> tuple[str, str]:
     """Get GOG prices directly from GOG store page."""
+    import time
+
     try:
         driver.get(gog_link)
         WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".product-actions-price__final-amount"))
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".product-actions-price__final-amount"))
         )
+
+        # check if the game is 18+. If so, click the button to confirm age
+        try:
+            age_confirm_button = driver.find_element(By.CSS_SELECTOR, ".age-gate__button")
+            whatever = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.ID, 
+                "CybotCookiebotDialogBodyButtonDecline"))
+            )
+            whatever.click()
+            time.sleep(0.5)  # wait for the page to reload
+            age_confirm_button.click()
+            time.sleep(0.5)  # wait for the page to reload
+        except Exception as e:
+            print(f"Age verification handling error: {str(e)}")
+            pass
         
         try:
             current_price_element = driver.find_element(By.CSS_SELECTOR, ".product-actions-price__final-amount")
@@ -196,8 +214,17 @@ def get_gog_prices_direct(driver: webdriver.Chrome, gog_link: str) -> tuple[str,
             current_price_element = driver.find_element(By.CSS_SELECTOR, ".product-actions-price__final-amount")
             base_price_element = current_price_element
         
+        print(f"GOG Current Price: {current_price_element.text}")
+        print(f"GOG Base Price: {base_price_element.text}")
+
+        if not current_price_element.text:
+            time.sleep(3)
+
         current_price = current_price_element.text
         base_price = base_price_element.text
+
+        # if not base_price:
+        #     base_price = current_price
         
         # GOG uses . as decimal separator, convert to ,
         current_price_value = current_price.replace('.', ',') if current_price else "0,0"
@@ -293,10 +320,10 @@ if __name__ == "__main__":
     # Uncomment the lines below to test with specific games or change the game names to 
     # match your JSON file
 
-    boltgun_prices = get_game_prices("Boltgun", driver)
-    space_marine_prices = get_game_prices("Space Marine", driver)
+    evil_west_prices = get_game_prices("Evil West", driver)
+    # bloodshed_prices = get_game_prices("Bloodshed", driver)
 
-    print("Boltgun Prices:", boltgun_prices)
-    print("Space Marine Prices:", space_marine_prices)
+    print("Evil West Prices:", evil_west_prices)
+    # print("Bloodshed Prices:", bloodshed_prices)
 
     exit_chrome_driver(driver)
